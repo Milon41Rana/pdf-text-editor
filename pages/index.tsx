@@ -1,9 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface Annotation {
   id: string;
@@ -35,6 +33,16 @@ const PDFViewer: React.FC = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
   const annotationContainerRefs = useRef<(HTMLDivElement | null)[]>([]);
+  
+  useEffect(() => {
+    const setPdfJsWorker = async () => {
+      const pdfjs = await import('pdfjs-dist/build/pdf');
+      const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
+      pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    };
+    setPdfJsWorker();
+  }, []);
+
 
   useEffect(() => {
     const savedAnnotations = localStorage.getItem('pdf-annotations');
@@ -86,7 +94,7 @@ const PDFViewer: React.FC = () => {
         reader.onload = async (e) => {
           try {
             const typedArray = new Uint8Array(e.target?.result as ArrayBuffer);
-            const pdf = await pdfjsLib.getDocument(typedArray).promise;
+            const pdf = await getDocument(typedArray).promise;
             setNumPages(pdf.numPages);
             canvasRefs.current = canvasRefs.current.slice(0, pdf.numPages);
             annotationContainerRefs.current = annotationContainerRefs.current.slice(0, pdf.numPages);
